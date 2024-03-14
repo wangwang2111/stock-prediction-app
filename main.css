@@ -1,0 +1,21 @@
+div[data-baseweb="notification"] {
+    background-color: #3498db; /* Change this color to your desired color */
+    color: #ffffff !important; 
+    /* Change this color to your desired text color  */
+}
+
+/* .st-cr {
+    color: #ffa83b; 
+} */
+
+div[class="st-emotion-cache-y57ikh e1nzilvr5"] {
+    color: #ffffff !important; /* Change this color to your desired text color */
+}
+
+.eczjsme3 div[data-baseweb="select"] {
+    color: #ffffff !important; /* Change this color to your desired text color */
+}
+
+a {
+    color: #f56600 !important;
+}
