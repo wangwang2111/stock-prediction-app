@@ -477,7 +477,7 @@ def model_engine(model, num):
     col1, col2 = st.columns([1,1])
     col1.dataframe(st.session_state["prediction_result"][-num:])
     excel_file_path = 'prediction_result.xlsx'  # Adjust the file path as needed
-    prediction_result.to_excel(excel_file_path, index=False)
+    prediction_result.to_excel(excel_file_path)
     col2.download_button(
         label="Download data as Excel",
         data=open(excel_file_path, 'rb').read(),
@@ -558,7 +558,7 @@ def existed_model_engine(model, num):
     col1, col2 = st.columns([3,1])
     col1.dataframe(st.session_state["prediction_result"][-num:])
     excel_file_path = 'prediction_result.xlsx'  # Adjust the file path as needed
-    prediction_result.to_excel(excel_file_path, index=False)
+    prediction_result.to_excel(excel_file_path)
     col2.download_button(
         label="Download data as Excel",
         data=open(excel_file_path, 'rb').read(),
