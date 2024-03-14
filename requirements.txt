@@ -9,3 +9,4 @@ xgboost==2.0.3
 catboost==1.2.2
 plotly==5.18.0
 holidays==0.43
+openpyxl==3.1.2
