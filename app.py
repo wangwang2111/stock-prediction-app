@@ -537,10 +537,10 @@ def existed_model_engine(model, num):
     # Create a new column 'y_pred_new' and initialize it with NaN
     df_w_visualization['Predicted Close'] = np.nan
     # Update 'y_pred_new' column for rows where 'isFuture' is True
-    df_w_visualization['Predicted Close'][:df_available.shape[0]] = y_pred_all
+    df_w_visualization.loc[:df_available.shape[0],'Predicted Close'] = y_pred_all
     
     # Replace 'close' values with predicted values when 'isFuture' is True
-    df_w_visualization['Predicted Close'][df_available.shape[0]:] = y_new
+    df_w_visualization.loc[df_available.shape[0]:,'Predicted Close'] = y_new
     
     # Create an interactive line chart
     # st.session_state["df_w_visualization"] = df_w_visualization 
