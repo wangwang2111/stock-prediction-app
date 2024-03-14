@@ -17,6 +17,7 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from catboost import CatBoostRegressor
 import plotly.express as px
 from vnstock.chart import candlestick_chart, bollinger_bands, bollinger_bands_chart # import chart functions
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Stock Prediction App", page_icon="📈", layout="wide")
 
@@ -440,11 +441,31 @@ def model_engine(model, num):
     col2.metric(label="R-squared", value=f"{round(r2, 2)}%", delta=f"{round(r2 - 91, 2)}%")
     col3.metric(label="MAE", value=round(mae, 2), delta=f"{round(mae - 0.01 * df_available.close.mean(), 2)}", delta_color="inverse")
     col4.metric(label="MAPE", value=f"{round(mape, 2)}%", delta=f"{round(mape - 1.2, 2)}%", delta_color="inverse")
+    
+    # Create a figure
+    fig = go.Figure()
+
+    # Add actual and predicted close prices for training data
+    fig.add_trace(go.Scatter(x=np.arange(len(y_train)), y=y_train, mode='lines', name='Actual Close (Training)'))
+    fig.add_trace(go.Scatter(x=np.arange(len(y_train)), y=model.predict(x_train), mode='lines', name='Predicted Close (Training)'))
+
+    # Add actual and predicted close prices for testing data
+    fig.add_trace(go.Scatter(x=np.arange(len(y_train), len(y_train) + len(y_test)), y=y_test, mode='lines', name='Actual Close (Testing)'))
+    fig.add_trace(go.Scatter(x=np.arange(len(y_train), len(y_train) + len(y_test)), y=preds, mode='lines', name='Predicted Close (Testing)'))
+
+    # Update layout
+    fig.update_layout(title='Actual vs Predicted Close Prices Training and Testing dataset',
+                    xaxis_title='Time',
+                    yaxis_title='Close Price')
+
+    # Show the plot
+    st.plotly_chart(fig, use_container_width=True)
     # st.write(f'r2_score: {r2:.2f}% \
     #         \nMAE: {mae:.2f}\
     #         \nRMSE: {rmse:.2f}\
     #         \nMAPE: {mape:.2f}%')
     # predicting stock price based on the number of days
+    model.fit(X, y)
     y_new = model.predict(x_forecast)
     # st.session_state.model = model
     df_w_visualization = df_preprocessed[['close', 'isFuture']].copy()
@@ -474,7 +495,7 @@ def model_engine(model, num):
     
     # Existed model
     st.session_state[f"model_{option}_{num}"] = model
-    col1, col2 = st.columns([1,1])
+    col1, col2 = st.columns([3,1])
     col1.dataframe(st.session_state["prediction_result"][-num:])
     excel_file_path = 'prediction_result.xlsx'  # Adjust the file path as needed
     prediction_result.to_excel(excel_file_path)
