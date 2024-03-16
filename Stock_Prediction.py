@@ -170,7 +170,7 @@ def add_rsi_to_chart(data, fig):
     fig.add_trace(rsi_trace, row=3,col=1)
     fig.add_trace(rsi_up_trace, row=3,col=1)
     fig.add_trace(rsi_down_trace, row=3,col=1)
-# Convert DataFrame to dictionary
+
 def create_overview_chart(data, time_option=-1):
     if time_option==-1:
         df_filtered = data.copy()
@@ -263,7 +263,6 @@ def financial_dashboard_index(data, index):
     ColourWidgetText(f"{updated_close:,.0f}", color)       # colour metric value
     st.divider()
 
-    
 def financial_dashboard(data, stock):
     st.header("Company Information", divider="rainbow")
     
@@ -411,7 +410,6 @@ def financial_dashboard(data, stock):
     report.reset_index(inplace=True)
     st.dataframe(report,use_container_width=True, height=700, hide_index=True)
 
-
 def tech_indicators(data, stock):
     st.header('Technical Indicators')
     option = st.radio('Choose a Technical Indicator to Visualize', ['Candlestick chart', 'BB', 'SMA'], horizontal=True)
@@ -421,7 +419,7 @@ def tech_indicators(data, stock):
     tech_ana_converter.calculate_macd()
     # RSI
     tech_ana_converter.calculate_rsi()
-    data = tech_ana_converter.get_data()
+    df = tech_ana_converter.get_data()
     if option == 'Candlestick chart':
         on_macd = st.toggle('MACD')
         on_volume = st.toggle('Show volume')
@@ -430,21 +428,21 @@ def tech_indicators(data, stock):
         # Create the candlestick chart
         fig = make_subplots(rows=4, cols=1, shared_xaxes=True, row_heights=[0.55, 0.15, 0.15, 0.15])
         candlestick_trace = go.Candlestick(
-            x=data['time'],
-            open=data['open'],
-            high=data['high'],
-            low=data['low'],
-            close=data['close'],
+            x=df['time'],
+            open=df['open'],
+            high=df['high'],
+            low=df['low'],
+            close=df['close'],
             name='Candlestick',
         )
         fig.add_trace(candlestick_trace, row=1, col=1)
         if on_macd:
-            add_macd_to_chart(data, fig)
+            add_macd_to_chart(df, fig)
         if on_rsi:
-            add_rsi_to_chart(data, fig)
+            add_rsi_to_chart(df, fig)
         if on_volume:
             # Plot volume trace on 4th row
-            fig.add_trace(go.Bar(x=data['time'], y=data['volume'], name="Volume"), row=4, col=1)
+            fig.add_trace(go.Bar(x=df['time'], y=df['volume'], name="Volume"), row=4, col=1)
         # Update layout
         fig.update_layout(
             title=f'{stock} - Candlestick Chart',
@@ -472,12 +470,12 @@ def tech_indicators(data, stock):
             row=1, col=1
         )
         fig.update_layout(xaxis_rangeslider_visible=False)
-        # data = data.drop(['lowest_low', 'highest_high'], axis=1)
+        # df = df.drop(['lowest_low', 'highest_high'], axis=1)
         st.plotly_chart(fig, use_container_width=True)
     elif option == 'BB':
         st.write('BollingerBands')
-        data = bollinger_bands(data)
-        fig = bollinger_bands_chart(data, fig_size=(15, 8), chart_title='Bollinger Bands Chart',show_volume=False,
+        df = bollinger_bands(df)
+        fig = bollinger_bands_chart(df, fig_size=(15, 8), chart_title='Bollinger Bands Chart',show_volume=False,
                                     xaxis_title='Date', yaxis_title='Price', bollinger_band_colors=('gray', 'orange', 'gray'), 
                                     volume_colors=('#00F4B0', '#FF3747'))
         # Update layout
@@ -506,14 +504,14 @@ def tech_indicators(data, stock):
                 ])
             )
         )
-        data = data.drop(['upper_band', 'lower_band','middle_band'], axis=1)
+        df = df.drop(['upper_band', 'lower_band','middle_band'], axis=1)
         st.plotly_chart(fig, use_container_width=True)
     elif option == 'SMA':
         st.write("Candlestick chart with SMA and SMA")
         ma_period = st.slider("SMA of how many days?",1,200,value=1,step=1)
 
         # Create the candlestick chart
-        fig = candlestick_chart(data, ma_periods=[ma_period], show_volume=False, reference_period=300,
+        fig = candlestick_chart(df, ma_periods=[ma_period], show_volume=False, reference_period=300,
                                 title=f'{option} - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price',
                                 reference_colors=('black', 'blue'))
         # Update layout
@@ -542,7 +540,7 @@ def tech_indicators(data, stock):
                 ])
             )
         )
-        data = data.drop(['20-day MA', '200-day MA','lowest_low', 'highest_high'], axis=1)
+        df = df.drop(['20-day MA', '200-day MA','lowest_low', 'highest_high'], axis=1)
         # Display the chart in the Streamlit app with responsive sizing
         st.plotly_chart(fig, use_container_width=True)
 
@@ -552,7 +550,7 @@ def dataframe():
 
 
 def predict():
-    model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'], horizontal=True)
+    model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'],index=3, horizontal=True)
     num = st.number_input('How many days forecast?', value=5)
     num = int(num)
     
@@ -565,14 +563,16 @@ def predict():
     
     if st.button('Predict'):
         if model == 'RandomForestRegressor':
-            engine = RandomForestRegressor(n_estimators=200, criterion="absolute_error")
+            engine = RandomForestRegressor(n_estimators=150, criterion="absolute_error")
         elif model == 'ExtraTreesRegressor':
             engine = ExtraTreesRegressor()
         elif model == 'KNeighborsRegressor':
             engine = KNeighborsRegressor()
+        elif model == 'LSTM':
+            engine = ExtraTreesRegressor()
         elif model == 'CatBoostRegressor':
             engine = CatBoostRegressor(n_estimators=600, loss_function='RMSE')
-        elif model == 'XGBoostRegressor':
+        else:
             engine = XGBRegressor(base_score=0.5, booster='gblinear',    
                            n_estimators=900,
                            objective='reg:squarederror',
@@ -581,30 +581,10 @@ def predict():
             existed_model_engine(st.session_state[f"model_{option}_{num}"], num)
         else:
             model_engine(engine, num)
-        # Selectbox for time period options
-    # if st.session_state["df_w_visualization"] is not None:
-        # time_period_option = st.radio("Select Time Period", ["1 week", "2 weeks", "1 month", "1 year", "all"], index=4)
-
-        # if time_period_option == "1 week":
-        # Create the line chart based on user input
-        # fig = create_predicted_chart(st.session_state["df_w_visualization"])
-        # st.plotly_chart(fig, use_container_width=True)
-        # elif time_period_option == "2 weeks":
-        #     fig = create_predicted_chart(st.session_state.df_w_visualization, 15)
-        #     st.plotly_chart(fig, use_container_width=True)
-        # elif time_period_option == "1 month":
-        #     fig = create_predicted_chart(st.session_state.df_w_visualization, 22)
-        #     st.plotly_chart(fig, use_container_width=True)
-        # elif time_period_option == "1 year":
-        #     fig = create_predicted_chart(st.session_state.df_w_visualization, 255)
-        #     st.plotly_chart(fig, use_container_width=True)
-        # else:
-        #     fig = create_predicted_chart(st.session_state.df_w_visualization)
-        #     st.plotly_chart(fig, use_container_width=True)
-        # st.dataframe(st.session_state.prediction_result)
 
 
 def model_preprocess(df, num):
+    print(df)
     # Display the updated DataFrame
     df, next_working_days = add_new_working_days(df, num)
     # shifting the closing price based on number of days forecast
@@ -719,7 +699,7 @@ def create_predicted_chart(df):
 
 def model_engine(model, num):
     # getting only the closing price
-    df = data[['time','close','open','high','low']]
+    df = data[['time','close','open','high','low','return']]
     df_preprocessed = model_preprocess(df, num)
     
     # scaling the data
