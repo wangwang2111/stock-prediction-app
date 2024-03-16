@@ -19,3 +19,14 @@ div[class="st-emotion-cache-y57ikh e1nzilvr5"] {
 a {
     color: #f56600 !important;
 }
+
+h1 {
+    color: #1f77b4 !important;
+}
+h2 {
+    color: #1f77b4 !important;
+}
+
+/* div[data-testid='stMetricValue']:first-child {
+    color: red !important;
+} */

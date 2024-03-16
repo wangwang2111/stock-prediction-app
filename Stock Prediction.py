@@ -4,7 +4,7 @@ import numpy as np
 import yfinance as yf
 from vnstock import * #import all functions
 from adding_features import technical_analysis_indicator, take_news_parameter, add_new_working_days
-from ta.trend import MACD, EMAIndicator, SMAIndicator
+from ta.trend import MACD
 from ta.momentum import RSIIndicator
 import datetime
 from sklearn.preprocessing import StandardScaler
@@ -18,38 +18,35 @@ from catboost import CatBoostRegressor
 import plotly.express as px
 from vnstock.chart import candlestick_chart, bollinger_bands, bollinger_bands_chart # import chart functions
 import plotly.graph_objects as go
+from st_functions import load_css
+from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Stock Prediction App", page_icon="📈", layout="wide")
 
+
 # Apply custom CSS to change the color of st.sidebar.info
-st.markdown(
-    """
-    <style>
+load_css("main.css")
 
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-# # Load external CSS file
-with open("main.css") as f:
-    st.markdown(f"""<style>{f.read()}</style>""", unsafe_allow_html=True)
-
-st.title('Stock Price Predictions')
+st.title('Stock Price Prediction')
 st.sidebar.info('Welcome to the Stock Price Prediction App. Choose your options below')
 st.sidebar.info("Created and designed by [Dylan Nguyen](https://www.linkedin.com/in/quang-nguyen-4b6a52287/)")
 
 def main():
-    option = st.sidebar.selectbox('Make a choice', ['Visualize','Recent Data', 'Predict'])
-    if option == 'Visualize':
-        tech_indicators(data)
-    elif option == 'Recent Data':
+    sidebar_option = st.sidebar.selectbox('Make a choice', ['Financial Dashboard','Visualize','Recent Data', 'Predict'])
+    if sidebar_option == 'Financial Dashboard':
+        financial_dashboard(data, option)
+    elif sidebar_option == 'Visualize':
+        tech_indicators(data, option)
+    elif sidebar_option == 'Recent Data':
         dataframe()
-    elif option == 'Predict':
+    elif sidebar_option == 'Predict':
         predict()
+    else:
+        st.warning("not a function")
 
 
 
-@st.cache_resource
+@st.cache_resource(ttl=600)
 def download_data(op, start_date, end_date, index_option='stock'):
     start_date = start_date.strftime("%Y-%m-%d")
     end_date = end_date.strftime("%Y-%m-%d")
@@ -93,7 +90,7 @@ HOSE_listing_stocks = listing_stocks[listing_stocks["comGroupCode"] == "HOSE"].c
 listing_indexes = ["VNINDEX", "VN30", "HNX30"]
 # Single select dropdown
 default_ix = HOSE_listing_stocks.index("VHM")
-index_option = st.radio("Select stock or index:", ['index', 'stock'], index=1)
+index_option = st.radio("Select stock or index:", ['index', 'stock'], horizontal=True, index=1)
 
 
 if index_option == "stock":
@@ -118,44 +115,230 @@ if st.sidebar.button('Send'):
         st.sidebar.error('Error: End date must fall after start date')
 
 data = download_data(option, start_date, end_date, index_option)
+data['return'] = data['close'].pct_change() * 100
 sp500_data = take_sp500(start_date, end_date)
 vnindex_data = take_vnindex(start_date, end_date)
 scaler = StandardScaler()
 
+def add_macd_to_chart(data, fig):
+    macd_trace = go.Scatter(
+        x=data['time'],
+        y=data['macd'],
+        mode='lines',
+        name="MACD"
+    )
+    macd_signal_trace = go.Scatter(
+        x=data['time'],
+        y=data['macd_signal_line'],
+        mode='lines',
+        name="MACD signal line"
+    )
+    macd_hist = go.Bar(
+        x=data['time'],
+        y=data['macd_histogram'],
+        name="MACD"
+    )
+    fig.add_trace(macd_trace, row=2,col=1)
+    fig.add_trace(macd_signal_trace, row=2,col=1)
+    fig.add_trace(macd_hist, row=2,col=1)
 
-def tech_indicators(data):
+def add_rsi_to_chart(data, fig):
+    rsi_trace = go.Scatter(
+        x=data['time'],
+        y=data['rsi'],
+        mode='lines',
+        name="RSI"
+    )
+    rsi_up_trace = go.Scatter(
+        x=data['time'],
+        y=[70]*len(data["time"]),
+        mode='lines',
+        name="RSI",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    rsi_down_trace = go.Scatter(
+        x=data['time'],
+        y=[30]*len(data['time']),
+        mode='lines',
+        name="RSI",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    fig.add_trace(rsi_trace, row=3,col=1)
+    fig.add_trace(rsi_up_trace, row=3,col=1)
+    fig.add_trace(rsi_down_trace, row=3,col=1)
+# Convert DataFrame to dictionary
+def create_overview_chart(data, time_option=-1):
+    if time_option==-1:
+        df_filtered = data.copy()
+    else:
+        df_filtered = data[-time_option:]
+        
+    fig = candlestick_chart(df_filtered,  show_volume=False, reference_period=100, figure_size=(10, 5), 
+                        title='VIC - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price', 
+                        colors=('lightgray', 'gray'), reference_colors=('black', 'blue'))
+    return fig
+
+def financial_report(stock, type):
+    if type == "Balance Sheet":
+        balance_sheet = financial_flow(symbol=stock, report_type='balancesheet', report_range='quarterly')
+        balance_sheet.drop(['ticker'], axis=1,inplace=True)
+        return balance_sheet.T
+          
+    elif type == "Income Statement":
+        income_statement = financial_flow(symbol=stock, report_type='incomestatement', report_range='quarterly')
+        income_statement.drop(['ticker'], axis=1,inplace=True)
+        return income_statement.T
+        
+    elif type == "Cashflow Statement":
+        cashflow = financial_flow(symbol=stock, report_type='cashflow', report_range='quarterly')
+        cashflow.drop(['ticker'], axis=1,inplace=True)
+        return cashflow.T
+        
+def financial_dashboard(data, stock):
+    st.header("Company Information")
+    st.divider()
+    
+    company_info = company_profile(stock)
+    # company_fundamentals = company_fundamental_ratio(symbol=stock, mode='simplify', missing_pct=0.8).T
+    company_news_title = company_news(symbol=stock, page_size=1000, page=0)
+    col1, col2,col3 = st.columns([1,2,3])
+    latest_time = data['time'].iloc[-1].strftime('%d/%m/%y')
+    updated_close = data['close'].iloc[-1]
+    return_percent = data['return'].iloc[-1]
+    # Conditionally format value based on threshold
+    if return_percent > 0:
+        color = "green"  # Set color to green if value is greater than threshold
+    else:
+        color = "red"    # Set color to red otherwise
+    # Inject CSS code using st.markdown() with variable color
+    st.markdown(f"<style>.st-emotion-cache-1wivap2:second-child {{color: {color}!important;}}</style>", unsafe_allow_html=True)
+
+    with col1:
+        st.metric(
+            label=f"Updated close {latest_time}",
+            value=f"{updated_close:,.0f}",
+            delta=f"{data['return'].iloc[-1]:,.2f}%"
+        )
+        
+        st.metric(
+            label=f"Volume {latest_time}",
+            value= f"{data['volume'].iloc[-1]:,.0f}",
+            delta= f"{data['volume'].iloc[-1]-data['volume'].iloc[-2]:,.0f}",
+            delta_color="off"
+        )
+        # Display "High" value with color
+        st.write(
+            f"High: <span style='color: green;'>{data['high'].iloc[-1]:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+
+        # Display "Low" value with color
+        st.write(
+            f"Low: <span style='color: red;'>{data['low'].iloc[-1]:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"Open: <span style='color: blue;'>{data['open'].iloc[-1]}</span>",
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.markdown("<h3 style='color: #FF5733;'>Company Name</h3>", unsafe_allow_html=True)
+        st.write(company_info['companyName'][0])
+        st.markdown("<h3 style='color: #C70039;'>Business Strategies</h3>", unsafe_allow_html=True)
+        st.write(company_info['businessStrategies'][0])
+
+    with col3:
+        st.markdown("<h3 style='color: #C70039;'>Company Profile</h3>", unsafe_allow_html=True)
+        st.write(company_info['companyProfile'][0])
+
+        st.markdown("<h3 style='color: #900C3F;'>Business Risk</h3>", unsafe_allow_html=True)
+        st.write(company_info['businessRisk'][0])
+    st.divider()
+    
+    kpi1,kpi2,kpi3 = st.columns([6,1,9])
+    kpi1.header("News and Events Related")
+
+    kpi1.dataframe(company_news_title['title'],use_container_width=True, height=600,hide_index=True)
+    
+    kpi3.header("Historical exchange")
+    time_period_option = kpi3.radio("Select Time Period", ["1 week", "2 weeks", "1 month", "1 year", "all"], horizontal=True, index=2, label_visibility='hidden')
+    if time_period_option == "1 week":
+    # Create the line chart based on user input
+        fig = create_overview_chart(data, 5)
+        kpi3.plotly_chart(fig, use_container_width=True)
+    elif time_period_option == "2 weeks":
+        fig = create_overview_chart(data, 10)
+        kpi3.plotly_chart(fig, use_container_width=True)
+    elif time_period_option == "1 month":
+        fig = create_overview_chart(data, 22)
+        kpi3.plotly_chart(fig, use_container_width=True)
+    elif time_period_option == "1 year":
+        fig = create_overview_chart(data, 225)
+        kpi3.plotly_chart(fig, use_container_width=True)
+    else:
+        fig = create_overview_chart(data)
+        kpi3.plotly_chart(fig, use_container_width=True)
+    
+    st.divider()
+    
+    # Financial Statement
+    st.header("Financial Statement")
+    report_option = st.selectbox("Choose an income statement", label_visibility="hidden", options=["Balance Sheet", "Income Statement", "Cashflow Statement"])
+    report = financial_report(stock, report_option)
+    report.reset_index(inplace=True)
+    st.dataframe(report,use_container_width=True, height=700, hide_index=True)
+
+
+def tech_indicators(data, stock):
     st.header('Technical Indicators')
-    option = st.radio('Choose a Technical Indicator to Visualize', ['Candlestick chart','Close', 'BB', 'MACD', 'RSI', 'SMA', 'EMA'])
-
+    option = st.radio('Choose a Technical Indicator to Visualize', ['Candlestick chart', 'BB', 'SMA'], horizontal=True)
+    
+    tech_ana_converter = technical_analysis_indicator(data)
     # MACD
-    macd = MACD(data.close).macd()
+    tech_ana_converter.calculate_macd()
     # RSI
-    rsi = RSIIndicator(data.close).rsi()
-    # SMA
-    sma = SMAIndicator(data.close, window=14).sma_indicator()
-    # EMA
-    ema = EMAIndicator(data.close).ema_indicator()
-
+    tech_ana_converter.calculate_rsi()
+    data = tech_ana_converter.get_data()
     if option == 'Candlestick chart':
+        on_macd = st.toggle('MACD')
+        on_volume = st.toggle('Show volume')
+        on_rsi = st.toggle('Show RSI')
         st.write("Candlestick chart")
         # Create the candlestick chart
-        fig = candlestick_chart(data, ma_periods=[20, 200], show_volume=False, reference_period=300,
-                                title=f'{option} - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price',
-                                reference_colors=('black', 'blue'))
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, row_heights=[0.55, 0.15, 0.15, 0.15])
+        candlestick_trace = go.Candlestick(
+            x=data['time'],
+            open=data['open'],
+            high=data['high'],
+            low=data['low'],
+            close=data['close'],
+            name='Candlestick',
+        )
+        fig.add_trace(candlestick_trace, row=1, col=1)
+        if on_macd:
+            add_macd_to_chart(data, fig)
+        if on_rsi:
+            add_rsi_to_chart(data, fig)
+        if on_volume:
+            # Plot volume trace on 4th row
+            fig.add_trace(go.Bar(x=data['time'], y=data['volume'], name="Volume"), row=4, col=1)
         # Update layout
         fig.update_layout(
-            xaxis_title='Time',
-            yaxis_title='Price',
+            title=f'{stock} - Candlestick Chart',
+            xaxis_title='Date',
+            yaxis_title="Price",
             hovermode='x',
             yaxis=dict(autorange = True,
                     fixedrange= False),
-            # plot_bgcolor='#f5f5f5',  # Background color
-            # xaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
-            # yaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
             font=dict(color='black', size=14),  # Text color
+            width=13 * 100,  # Convert short form width to full width
+            height=12 * 100  # Convert short form height to full height
         )
         fig.update_xaxes(
-            rangeslider_visible=True,
             rangeselector=dict(
                 buttons=list([
                     dict(count=7, label="1w", step="day", stepmode="backward"),
@@ -166,14 +349,12 @@ def tech_indicators(data):
                     dict(count=1, label="1y", step="year", stepmode="backward"),
                     dict(step="all")
                 ])
-            )
+            ),
+            row=1, col=1
         )
-        data = data.drop(['20-day MA', '200-day MA','lowest_low', 'highest_high'], axis=1)
-        # Display the chart in the Streamlit app with responsive sizing
+        fig.update_layout(xaxis_rangeslider_visible=False)
+        # data = data.drop(['lowest_low', 'highest_high'], axis=1)
         st.plotly_chart(fig, use_container_width=True)
-    elif option == 'Close':
-        st.write('Close Price')
-        st.line_chart(data.close)
     elif option == 'BB':
         st.write('BollingerBands')
         data = bollinger_bands(data)
@@ -208,19 +389,43 @@ def tech_indicators(data):
         )
         data = data.drop(['upper_band', 'lower_band','middle_band'], axis=1)
         st.plotly_chart(fig, use_container_width=True)
-    elif option == 'MACD':
-        st.write('Moving Average Convergence Divergence')
-        st.line_chart(macd)
-    elif option == 'RSI':
-        st.write('Relative Strength Indicator')
-        st.line_chart(rsi)
     elif option == 'SMA':
-        st.write('Simple Moving Average')
-        st.line_chart(sma)
-    else:
-        st.write('Expoenetial Moving Average')
-        st.line_chart(ema)
+        st.write("Candlestick chart with SMA and SMA")
+        ma_period = st.slider("SMA of how many days?",1,200,value=1,step=1)
 
+        # Create the candlestick chart
+        fig = candlestick_chart(data, ma_periods=[ma_period], show_volume=False, reference_period=300,
+                                title=f'{option} - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price',
+                                reference_colors=('black', 'blue'))
+        # Update layout
+        fig.update_layout(
+            xaxis_title='Time',
+            yaxis_title='Price',
+            hovermode='x',
+            yaxis=dict(autorange = True,
+                    fixedrange= False),
+            # plot_bgcolor='#f5f5f5',  # Background color
+            # xaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
+            # yaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
+            font=dict(color='black', size=14),  # Text color
+        )
+        fig.update_xaxes(
+            rangeslider_visible=True,
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=7, label="1w", step="day", stepmode="backward"),
+                    dict(count=14, label="2w", step="day", stepmode="backward"),
+                    dict(count=1, label="1m", step="month", stepmode="backward"),
+                    dict(count=6, label="6m", step="month", stepmode="backward"),
+                    dict(count=1, label="YTD", step="year", stepmode="todate"),
+                    dict(count=1, label="1y", step="year", stepmode="backward"),
+                    dict(step="all")
+                ])
+            )
+        )
+        data = data.drop(['20-day MA', '200-day MA','lowest_low', 'highest_high'], axis=1)
+        # Display the chart in the Streamlit app with responsive sizing
+        st.plotly_chart(fig, use_container_width=True)
 
 def dataframe():
     st.header('Recent Data')
@@ -228,7 +433,7 @@ def dataframe():
 
 
 def predict():
-    model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'])
+    model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'], horizontal=True)
     num = st.number_input('How many days forecast?', value=5)
     num = int(num)
     
@@ -285,7 +490,6 @@ def model_preprocess(df, num):
     df, next_working_days = add_new_working_days(df, num)
     # shifting the closing price based on number of days forecast
     # Calculate the 'return' column
-    df['return'] = df['close'].pct_change() * 100
     vnindex_data['vnindex return'] = vnindex_data['vnindex close'].pct_change() * 100
     sp500_data['SP500 return'] = sp500_data['Adj Close'].pct_change() * 100
     
