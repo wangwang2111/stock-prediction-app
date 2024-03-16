@@ -4,8 +4,6 @@ import numpy as np
 import yfinance as yf
 from vnstock import * #import all functions
 from adding_features import technical_analysis_indicator, take_news_parameter, add_new_working_days
-from ta.trend import MACD
-from ta.momentum import RSIIndicator
 import datetime
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -18,7 +16,7 @@ from catboost import CatBoostRegressor
 import plotly.express as px
 from vnstock.chart import candlestick_chart, bollinger_bands, bollinger_bands_chart # import chart functions
 import plotly.graph_objects as go
-from st_functions import load_css
+from st_functions import load_css, ColourWidgetText
 from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Stock Prediction App", page_icon="📈", layout="wide")
@@ -34,10 +32,12 @@ st.sidebar.info("Created and designed by [Dylan Nguyen](https://www.linkedin.com
 def main():
     sidebar_option = st.sidebar.selectbox('Make a choice', ['Financial Dashboard','Visualize','Recent Data', 'Predict'])
     if sidebar_option == 'Financial Dashboard':
-        financial_dashboard(data, option)
+        if index_option == 'stock':
+            financial_dashboard(data, option)
+        else:
+            financial_dashboard_index(data, option)
     elif sidebar_option == 'Visualize':
         tech_indicators(data, option)
-    elif sidebar_option == 'Recent Data':
         dataframe()
     elif sidebar_option == 'Predict':
         predict()
@@ -45,8 +45,7 @@ def main():
         st.warning("not a function")
 
 
-
-@st.cache_resource(ttl=600)
+@st.cache_resource
 def download_data(op, start_date, end_date, index_option='stock'):
     start_date = start_date.strftime("%Y-%m-%d")
     end_date = end_date.strftime("%Y-%m-%d")
@@ -107,6 +106,9 @@ before = datetime.date(2019, 1, 1)
 start_date = st.sidebar.date_input('Start Date', value=before)
 end_date = st.sidebar.date_input('End date', today)
 
+sp500_data = take_sp500(start_date, end_date)
+vnindex_data = take_vnindex(start_date, end_date)
+
 if st.sidebar.button('Send'):
     if start_date < end_date:
         st.sidebar.success('Start date: `%s`\n\nEnd date: `%s`' %(start_date, end_date))
@@ -116,8 +118,6 @@ if st.sidebar.button('Send'):
 
 data = download_data(option, start_date, end_date, index_option)
 data['return'] = data['close'].pct_change() * 100
-sp500_data = take_sp500(start_date, end_date)
-vnindex_data = take_vnindex(start_date, end_date)
 scaler = StandardScaler()
 
 def add_macd_to_chart(data, fig):
@@ -197,72 +197,191 @@ def financial_report(stock, type):
         cashflow = financial_flow(symbol=stock, report_type='cashflow', report_range='quarterly')
         cashflow.drop(['ticker'], axis=1,inplace=True)
         return cashflow.T
-        
-def financial_dashboard(data, stock):
-    st.header("Company Information")
-    st.divider()
-    
-    company_info = company_profile(stock)
-    # company_fundamentals = company_fundamental_ratio(symbol=stock, mode='simplify', missing_pct=0.8).T
-    company_news_title = company_news(symbol=stock, page_size=1000, page=0)
-    col1, col2,col3 = st.columns([1,2,3])
-    latest_time = data['time'].iloc[-1].strftime('%d/%m/%y')
+
+def financial_dashboard_index(data, index):
+    st.header("Index Information", divider="rainbow")
+    latest_time = data['time'].iloc[-1]
     updated_close = data['close'].iloc[-1]
     return_percent = data['return'].iloc[-1]
-    # Conditionally format value based on threshold
-    if return_percent > 0:
-        color = "green"  # Set color to green if value is greater than threshold
+    col1, col_temp = st.columns([1,5])
+
+    if return_percent < 0:
+        color = "red"
+    elif return_percent == 0:
+        color = "blue"
     else:
-        color = "red"    # Set color to red otherwise
-    # Inject CSS code using st.markdown() with variable color
-    st.markdown(f"<style>.st-emotion-cache-1wivap2:second-child {{color: {color}!important;}}</style>", unsafe_allow_html=True)
+        color = "green"
 
     with col1:
+        st.subheader(f":red[{index}]", divider='blue')
         st.metric(
-            label=f"Updated close {latest_time}",
+            label=f"***Updated close {latest_time}***",
             value=f"{updated_close:,.0f}",
-            delta=f"{data['return'].iloc[-1]:,.2f}%"
+            delta=f"{return_percent:,.2f}%"
         )
-        
+        # ColourWidgetText('Metric1', '#00B0F0')  # colour only metric text
         st.metric(
-            label=f"Volume {latest_time}",
+            label=f"***Volume {latest_time}***",
             value= f"{data['volume'].iloc[-1]:,.0f}",
             delta= f"{data['volume'].iloc[-1]-data['volume'].iloc[-2]:,.0f}",
             delta_color="off"
         )
         # Display "High" value with color
         st.write(
-            f"High: <span style='color: green;'>{data['high'].iloc[-1]:,.0f}</span>",
+            f"***High:*** <span style='color: green;'>{data['high'].iloc[-1]:,.0f}</span>",
             unsafe_allow_html=True
         )
 
         # Display "Low" value with color
         st.write(
-            f"Low: <span style='color: red;'>{data['low'].iloc[-1]:,.0f}</span>",
+            f"***Low:*** <span style='color: red;'>{data['low'].iloc[-1]:,.0f}</span>",
             unsafe_allow_html=True
         )
         st.write(
-            f"Open: <span style='color: blue;'>{data['open'].iloc[-1]}</span>",
+            f"***Open:*** <span style='color: blue;'>{data['open'].iloc[-1]:,.0f}</span>",
             unsafe_allow_html=True
         )
-    with col2:
-        st.markdown("<h3 style='color: #FF5733;'>Company Name</h3>", unsafe_allow_html=True)
-        st.write(company_info['companyName'][0])
-        st.markdown("<h3 style='color: #C70039;'>Business Strategies</h3>", unsafe_allow_html=True)
-        st.write(company_info['businessStrategies'][0])
+    with col_temp:
+        st.subheader(f":orange[Historical price]", divider='blue')
+        time_period_option = st.radio("Select Time Period", ["1 week", "2 weeks", "1 month", "1 year", "all"], horizontal=True, index=4, label_visibility='hidden')
+        if time_period_option == "1 week":
+        # Create the line chart based on user input
+            fig = create_overview_chart(data, 5)
+            st.plotly_chart(fig, use_container_width=True)
+        elif time_period_option == "2 weeks":
+            fig = create_overview_chart(data, 10)
+            st.plotly_chart(fig, use_container_width=True)
+        elif time_period_option == "1 month":
+            fig = create_overview_chart(data, 22)
+            st.plotly_chart(fig, use_container_width=True)
+        elif time_period_option == "1 year":
+            fig = create_overview_chart(data, 225)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            fig = create_overview_chart(data)
+            st.plotly_chart(fig, use_container_width=True)
+    ColourWidgetText(f"{updated_close:,.0f}", color)       # colour metric value
+    st.divider()
 
-    with col3:
-        st.markdown("<h3 style='color: #C70039;'>Company Profile</h3>", unsafe_allow_html=True)
-        st.write(company_info['companyProfile'][0])
+    
+def financial_dashboard(data, stock):
+    st.header("Company Information", divider="rainbow")
+    
+    company_info = company_profile(stock)
+    # company_fundamentals = company_fundamental_ratio(symbol=stock, mode='simplify', missing_pct=0.8).T
+    company_news_title = company_news(symbol=stock, page_size=1000, page=0)
+    company_fin_ratio = financial_ratio(stock, 'yearly').T
+    col1, col_temp = st.columns([1,5])
+    latest_time = data['time'].iloc[-1].strftime('%d/%m/%y')
+    updated_close = data['close'].iloc[-1]
+    return_percent = data['return'].iloc[-1]
+    
+    roe = company_fin_ratio['roe'].iloc[0]
+    roa = company_fin_ratio['roa'].iloc[0]
+    eps = company_fin_ratio['earningPerShare'].iloc[0]
+    priceToEarning = company_fin_ratio['priceToEarning'].iloc[0]
+    try:
+        bookValuePerShare = company_fin_ratio['bookValuePerShare'].iloc[0]
+        badDebtPercentage = company_fin_ratio['badDebtPercentage'].iloc[0]
+    except:
+        pass
+    financialLeverage = company_fin_ratio['assetOnEquity'].iloc[0]
 
-        st.markdown("<h3 style='color: #900C3F;'>Business Risk</h3>", unsafe_allow_html=True)
-        st.write(company_info['businessRisk'][0])
+    if return_percent < 0:
+        color = "red"
+    elif return_percent == 0:
+        color = "blue"
+    else:
+        color = "green"
+
+    with col1:
+        st.subheader(f":red[{stock}]", divider='blue')
+        st.metric(
+            label=f"***Updated close {latest_time}***",
+            value=f"{updated_close:,.0f}",
+            delta=f"{return_percent:,.2f}%"
+        )
+        # ColourWidgetText('Metric1', '#00B0F0')  # colour only metric text
+        st.metric(
+            label=f"***Volume {latest_time}***",
+            value= f"{data['volume'].iloc[-1]:,.0f}",
+            delta= f"{data['volume'].iloc[-1]-data['volume'].iloc[-2]:,.0f}",
+            delta_color="off"
+        )
+        # Display "High" value with color
+        st.write(
+            f"***High:*** <span style='color: green;'>{data['high'].iloc[-1]:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+
+        # Display "Low" value with color
+        st.write(
+            f"***Low:*** <span style='color: red;'>{data['low'].iloc[-1]:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"***Open:*** <span style='color: blue;'>{data['open'].iloc[-1]:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"**EPS:** <span style='color: #652f2f;'>{eps:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"**ROA:** <span style='color: #652f2f;'>{roa:,.2f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"**ROE:** <span style='color: #652f2f;'>{roe:,.2f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"**P/E:** <span style='color: #652f2f;'>{priceToEarning:,.2f}</span>",
+            unsafe_allow_html=True
+        )
+        st.write(
+            f"**Leverage ratio:** <span style='color: #652f2f;'>{financialLeverage:,.2f}</span>",
+            unsafe_allow_html=True
+        )
+        try:
+            st.write(
+                f"**BVPS:** <span style='color: #652f2f;'>{bookValuePerShare:,.2f}</span>",
+                unsafe_allow_html=True
+            )
+            st.write(
+                f"**badDebtPercentage:** <span style='color: #652f2f;'>{badDebtPercentage:,.2f}</span>",
+                unsafe_allow_html=True
+            )
+        except:
+            pass
+    
+    ColourWidgetText(f"{updated_close:,.0f}", color)       # colour metric value
+    with col_temp:
+        col2,col3 = st.columns([2, 3])
+        with col2:
+            st.markdown("<h3 style='color: #FF5733;'>Company Name</h3>", unsafe_allow_html=True)
+            st.write(company_info['companyName'][0])
+            st.markdown("<h3 style='color: #C70039;'>Business Strategies</h3>", unsafe_allow_html=True)
+            st.write(company_info['businessStrategies'][0])
+            
+        with col3:
+            st.markdown("<h3 style='color: #C70039;'>Company Profile</h3>", unsafe_allow_html=True)
+            st.write(company_info['companyProfile'][0])
+
+            st.markdown("<h3 style='color: #900C3F;'>Business Risk</h3>", unsafe_allow_html=True)
+            st.write(company_info['businessRisk'][0])
+        
+        st.divider()
+        with st.container():
+            st.subheader("Financial Ratios")
+            company_fin_ratio.drop(['ticker'], axis=1,inplace=True)
+            st.dataframe(company_fin_ratio,use_container_width=True,height=190)
     st.divider()
     
-    kpi1,kpi2,kpi3 = st.columns([6,1,9])
+    kpi1,kpi2,kpi3 = st.columns([11,1,11])
     kpi1.header("News and Events Related")
 
-    kpi1.dataframe(company_news_title['title'],use_container_width=True, height=600,hide_index=True)
+    kpi1.dataframe(company_news_title[['title','publishDate']],use_container_width=True, height=600,hide_index=True)
     
     kpi3.header("Historical exchange")
     time_period_option = kpi3.radio("Select Time Period", ["1 week", "2 weeks", "1 month", "1 year", "all"], horizontal=True, index=2, label_visibility='hidden')
