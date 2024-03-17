@@ -749,12 +749,12 @@ def model_engine(model, num):
     fig = go.Figure()
 
     # Add actual and predicted close prices for training data
-    fig.add_trace(go.Scatter(x=np.arange(len(y_train)), y=y_train, mode='lines', name='Actual Close (Training)'))
-    fig.add_trace(go.Scatter(x=np.arange(len(y_train)), y=model.predict(x_train), mode='lines', name='Predicted Close (Training)'))
+    fig.add_trace(go.Scatter(x=df_available.index[:int(len(df_available)*0.8)], y=y_train, mode='lines', name='Actual Close (Training)'))
+    fig.add_trace(go.Scatter(x=df_available.index[:int(len(df_available)*0.8)], y=model.predict(x_train), mode='lines', name='Predicted Close (Training)'))
 
     # Add actual and predicted close prices for testing data
-    fig.add_trace(go.Scatter(x=np.arange(len(y_train), len(y_train) + len(y_test)), y=y_test, mode='lines', name='Actual Close (Testing)'))
-    fig.add_trace(go.Scatter(x=np.arange(len(y_train), len(y_train) + len(y_test)), y=preds, mode='lines', name='Predicted Close (Testing)'))
+    fig.add_trace(go.Scatter(x=df_available.index[int(len(df_available)*0.8):], y=y_test, mode='lines', name='Actual Close (Testing)'))
+    fig.add_trace(go.Scatter(x=df_available.index[int(len(df_available)*0.8):], y=preds, mode='lines', name='Predicted Close (Testing)'))
 
     # Update layout
     fig.update_layout(title='Actual vs Predicted Close Prices Training and Testing dataset',
@@ -810,7 +810,7 @@ def model_engine(model, num):
 
 def existed_model_engine(model, num):
         # getting only the closing price
-    df = data[['time','close','open','high','low']]
+    df = data[['time','close','open','high','low','return']]
     df_preprocessed = model_preprocess(df, num)
     
     # scaling the data
