@@ -84,19 +84,45 @@ def take_vnindex(start_date, end_date):
     df.drop(['open', 'high', 'low', 'volume', 'ticker'], axis=1, inplace=True)
     return df
 
+
+class SessionState(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+# Function to get unique hash
+def get_hash(text):
+    return hash(','.join(sorted(text)))
+
 listing_stocks = listing_companies(True)
 HOSE_listing_stocks = listing_stocks[listing_stocks["comGroupCode"] == "HOSE"].copy()['ticker'].to_list()
 listing_indexes = ["VNINDEX", "VN30", "HNX30"]
 # Single select dropdown
 default_ix = HOSE_listing_stocks.index("VHM")
-index_option = st.radio("Select stock or index:", ['index', 'stock'], horizontal=True, index=1)
-
-
+index_option = st.radio("Select stock or index:", ['index', 'stock'], horizontal=True, index=0)
 if index_option == "stock":
-    option = st.selectbox("Select a stock:", HOSE_listing_stocks, index=default_ix)
-else:
-    option = st.selectbox("Select a stock:", listing_indexes, index=1)
-    
+    # Initialize SessionState
+    session_state = SessionState(hash=0)
+
+    # Input field for users to enter their pinned options
+    pinned_options = st.multiselect('Select options to pin', HOSE_listing_stocks)
+
+    # Save pinned options to session state
+    if pinned_options:
+        session_state.hash = get_hash(pinned_options)
+        session_state.pinned_options = pinned_options
+
+# Create a selectbox with pinned options
+try:
+    if hasattr(session_state, 'pinned_options'):
+        pinned_options_with_icon = [f'📌 {option}' for option in session_state.pinned_options]
+        option = st.selectbox("Select a stock:", options=pinned_options_with_icon + [option for option in HOSE_listing_stocks if option not in session_state.pinned_options], index=default_ix)
+    else:
+        option = st.selectbox("Select a stock:", options=HOSE_listing_stocks, index=default_ix)
+except:
+    option = st.selectbox("Select an index:", listing_indexes, index=1)    
+
+# Remove the icon before passing the option to the download_data function
+option = option.split('📌 ')[-1] if '📌' in option else option
 option = option.upper()
 today = datetime.date.today()
 # today = datetime.date.today() - timedelta(days=1)
@@ -809,7 +835,7 @@ def model_engine(model, num):
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',)
 
 def existed_model_engine(model, num):
-        # getting only the closing price
+    # getting only the closing price
     df = data[['time','close','open','high','low','return']]
     df_preprocessed = model_preprocess(df, num)
     
