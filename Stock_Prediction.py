@@ -94,17 +94,17 @@ def get_hash(text):
     return hash(','.join(sorted(text)))
 
 listing_stocks = listing_companies(True)
-HOSE_listing_stocks = listing_stocks[listing_stocks["comGroupCode"] == "HOSE"].copy()['ticker'].to_list()
+listing_stocks = listing_stocks.copy()['ticker'].to_list()
 listing_indexes = ["VNINDEX", "VN30", "HNX30"]
 # Single select dropdown
-default_ix = HOSE_listing_stocks.index("VHM")
+default_ix = listing_stocks.index("VHM")
 index_option = st.radio("Select stock or index:", ['index', 'stock'], horizontal=True, index=0)
 if index_option == "stock":
     # Initialize SessionState
     session_state = SessionState(hash=0)
 
     # Input field for users to enter their pinned options
-    pinned_options = st.multiselect('Select options to pin', HOSE_listing_stocks)
+    pinned_options = st.multiselect('Select options to pin', listing_stocks)
 
     # Save pinned options to session state
     if pinned_options:
@@ -115,9 +115,9 @@ if index_option == "stock":
 try:
     if hasattr(session_state, 'pinned_options'):
         pinned_options_with_icon = [f'📌 {option}' for option in session_state.pinned_options]
-        option = st.selectbox("Select a stock:", options=pinned_options_with_icon + [option for option in HOSE_listing_stocks if option not in session_state.pinned_options], index=default_ix)
+        option = st.selectbox("Select a stock:", options=pinned_options_with_icon + [option for option in listing_stocks if option not in session_state.pinned_options], index=default_ix)
     else:
-        option = st.selectbox("Select a stock:", options=HOSE_listing_stocks, index=default_ix)
+        option = st.selectbox("Select a stock:", options=listing_stocks, index=default_ix)
 except:
     option = st.selectbox("Select an index:", listing_indexes, index=1)    
 
@@ -146,7 +146,7 @@ data = download_data(option, start_date, end_date, index_option)
 data['return'] = data['close'].pct_change() * 100
 scaler = StandardScaler()
 
-def add_macd_to_chart(data, fig):
+def add_macd_to_chart(data, fig, row, col):
     macd_trace = go.Scatter(
         x=data['time'],
         y=data['macd'],
@@ -162,13 +162,13 @@ def add_macd_to_chart(data, fig):
     macd_hist = go.Bar(
         x=data['time'],
         y=data['macd_histogram'],
-        name="MACD"
+        name="MACD hist"
     )
-    fig.add_trace(macd_trace, row=2,col=1)
-    fig.add_trace(macd_signal_trace, row=2,col=1)
-    fig.add_trace(macd_hist, row=2,col=1)
+    fig.add_trace(macd_trace, row=row,col=col)
+    fig.add_trace(macd_signal_trace, row=row,col=col)
+    fig.add_trace(macd_hist, row=row,col=col)
 
-def add_rsi_to_chart(data, fig):
+def add_rsi_to_chart(data, fig, row, col):
     rsi_trace = go.Scatter(
         x=data['time'],
         y=data['rsi'],
@@ -193,9 +193,79 @@ def add_rsi_to_chart(data, fig):
             width = 0.5,
             dash = 'dot')
     )
-    fig.add_trace(rsi_trace, row=3,col=1)
-    fig.add_trace(rsi_up_trace, row=3,col=1)
-    fig.add_trace(rsi_down_trace, row=3,col=1)
+    fig.add_trace(rsi_trace, row=row,col=col)
+    fig.add_trace(rsi_up_trace, row=row,col=col)
+    fig.add_trace(rsi_down_trace, row=row,col=col)
+
+def add_smi_to_chart(data, fig, row, col):
+    # tech_ana_converter.calculate_smi()
+    # tech_ana_converter.calculate_chaikin()
+    smi_trace = go.Scatter(
+        x=data['time'],
+        y=data['smi_raw'],
+        mode='lines',
+        name="SMI"
+    )
+    signal_trace = go.Scatter(
+        x=data['time'],
+        y=data['smi_signal_line'],
+        mode='lines',
+        name="SMI signal line"
+    )
+    smi_up_trace = go.Scatter(
+        x=data['time'],
+        y=[70]*len(data["time"]),
+        mode='lines',
+        name="overbought sign",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    smi_down_trace = go.Scatter(
+        x=data['time'],
+        y=[30]*len(data['time']),
+        mode='lines',
+        name="oversold sign",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    fig.add_trace(smi_trace, row=row,col=col)
+    fig.add_trace(signal_trace, row=row,col=col)
+    fig.add_trace(smi_up_trace, row=row,col=col)
+    fig.add_trace(smi_down_trace, row=row,col=col)
+
+def add_cci_to_chart(data, fig, row, col):
+    # tech_ana_converter.calculate_smi()
+    # tech_ana_converter.calculate_chaikin()
+    cci_trace = go.Scatter(
+        x=data['time'],
+        y=data['cci'],
+        mode='lines',
+        name="CCI (Commodity Channel Index)"
+    )
+
+    cci_up_trace = go.Scatter(
+        x=data['time'],
+        y=[100]*len(data["time"]),
+        mode='lines',
+        name="overbought sign",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    cci_down_trace = go.Scatter(
+        x=data['time'],
+        y=[-100]*len(data['time']),
+        mode='lines',
+        name="oversold sign",
+        line = dict(color = 'red',
+            width = 0.5,
+            dash = 'dot')
+    )
+    fig.add_trace(cci_trace, row=row,col=col)
+    fig.add_trace(cci_up_trace, row=row,col=col)
+    fig.add_trace(cci_down_trace, row=row,col=col)
 
 def create_overview_chart(data, time_option=-1):
     if time_option==-1:
@@ -203,8 +273,8 @@ def create_overview_chart(data, time_option=-1):
     else:
         df_filtered = data[-time_option:]
         
-    fig = candlestick_chart(df_filtered,  show_volume=False, reference_period=100, figure_size=(10, 5), 
-                        title='VIC - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price', 
+    fig = candlestick_chart(df_filtered,  show_volume=False, reference_period=200, figure_size=(10, 5), 
+                        title=f'{option} - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price', 
                         colors=('lightgray', 'gray'), reference_colors=('black', 'blue'))
     return fig
 
@@ -443,13 +513,23 @@ def tech_indicators(data, stock):
     tech_ana_converter = technical_analysis_indicator(data)
     # MACD
     tech_ana_converter.calculate_macd()
+    tech_ana_converter.calculate_obv()
     # RSI
     tech_ana_converter.calculate_rsi()
+    tech_ana_converter.calculate_cci()
+    tech_ana_converter.calculate_smi()
+    tech_ana_converter.calculate_chaikin()
     df = tech_ana_converter.get_data()
+    
     if option == 'Candlestick chart':
+        st.warning("No more than 3 toggles can be turned on at the same time!")
+        
         on_macd = st.toggle('MACD')
         on_volume = st.toggle('Show volume')
         on_rsi = st.toggle('Show RSI')
+        on_cci = st.toggle('Show CCI (Commodity Channel Index)')
+        on_smi = st.toggle('Show SMI (Stochastic Momentum Indicator)')
+        on_obv = st.toggle('Show OBV (On-Balance Volume)')
         st.write("Candlestick chart")
         # Create the candlestick chart
         fig = make_subplots(rows=4, cols=1, shared_xaxes=True, row_heights=[0.55, 0.15, 0.15, 0.15])
@@ -462,13 +542,33 @@ def tech_indicators(data, stock):
             name='Candlestick',
         )
         fig.add_trace(candlestick_trace, row=1, col=1)
+        count_button = sum(1 for var in {on_macd, on_rsi, on_cci, on_smi, on_volume, on_obv} if var)
+        i = count_button
         if on_macd:
-            add_macd_to_chart(df, fig)
+            add_macd_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_smi:
+            # on_rsi=False
+            add_smi_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_cci:
+            add_cci_to_chart(df, fig, row=i+1, col=1)
+            i+=1
         if on_rsi:
-            add_rsi_to_chart(df, fig)
+            # on_smi=False
+            fig.add_trace(go.Scatter(x=df['time'], y=df['volume'], name="Volume"), row=i+1, col=1)
+            i+=1
         if on_volume:
-            # Plot volume trace on 4th row
-            fig.add_trace(go.Bar(x=df['time'], y=df['volume'], name="Volume"), row=4, col=1)
+            # on_obv=False
+            fig.add_trace(go.Bar(x=df['time'], y=df['volume'], name="Volume"), row=i+1, col=1)
+            i+=1
+        if on_obv:
+            # on_volume=False
+            fig.add_trace(go.Bar(x=df['time'], y=df['obv'], name="On-Balance Volume"), row=i+1, col=1)
+            i+=1
+        print(i)
+        if i>=4:
+            st.warning("No more than 3 toggles can be turned on at the same time!")
         # Update layout
         fig.update_layout(
             title=f'{stock} - Candlestick Chart',
@@ -500,21 +600,97 @@ def tech_indicators(data, stock):
         st.plotly_chart(fig, use_container_width=True)
     elif option == 'BB':
         st.write('BollingerBands')
+        st.warning("No more than 3 toggles can be turned on at the same time!")
+        
+        on_macd = st.toggle('MACD')
+        on_rsi = st.toggle('Show RSI')
+        on_cci = st.toggle('Show CCI (Commodity Channel Index)')
+        on_smi = st.toggle('Show SMI (Stochastic Momentum Indicator)')
+        on_volume = st.toggle('Show volume')
+        on_obv = st.toggle('Show OBV (On-Balance Volume)')
+        st.write("Candlestick chart")
+        # Create the candlestick chart
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, row_heights=[0.55, 0.15, 0.15, 0.15])
         df = bollinger_bands(df)
-        fig = bollinger_bands_chart(df, fig_size=(15, 8), chart_title='Bollinger Bands Chart',show_volume=False,
-                                    xaxis_title='Date', yaxis_title='Price', bollinger_band_colors=('gray', 'orange', 'gray'), 
-                                    volume_colors=('#00F4B0', '#FF3747'))
-        # Update layout
+        candlestick_trace = go.Candlestick(
+            x=df['time'],
+            open=df['open'],
+            high=df['high'],
+            low=df['low'],
+            close=df['close'],
+            name='Candlestick',
+        )
+
+        fig.add_trace(candlestick_trace, row=1, col=1)
+
+        # Create the Bollinger Bands traces
+        upper_band_trace = go.Scatter(
+            x=df['time'],
+            y=df['upper_band'],
+            mode='lines',
+            line=dict(color='gray'),
+            name='Upper Bollinger Band',
+        )
+
+        middle_band_trace = go.Scatter(
+            x=df['time'],
+            y=df['middle_band'],
+            mode='lines',
+            line=dict(color='orange'),
+            name='Middle Bollinger Band',
+        )
+
+        lower_band_trace = go.Scatter(
+            x=df['time'],
+            y=df['lower_band'],
+            mode='lines',
+            line=dict(color='gray'),
+            name='Lower Bollinger Band',
+        )
+
+        fig.add_trace(upper_band_trace,row=1,col=1)
+        fig.add_trace(middle_band_trace,row=1,col=1)
+        fig.add_trace(lower_band_trace,row=1,col=1)
+
+        count_button = sum(1 for var in {on_macd, on_rsi, on_cci, on_smi, on_volume, on_obv} if var)
+        i = count_button
+        if on_macd:
+            add_macd_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_smi:
+            # on_rsi=False
+            add_smi_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_cci:
+            add_cci_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_rsi:
+            # on_smi=False
+            add_rsi_to_chart(df, fig, row=i+1, col=1)
+            i+=1
+        if on_volume:
+            # on_obv=False
+            fig.add_trace(go.Bar(x=df['time'], y=df['volume'], name="Volume"), row=i+1, col=1)
+            i+=1
+        if on_obv:
+            # on_volume=False
+            fig.add_trace(go.Bar(x=df['time'], y=df['obv'], name="On-Balance Volume"), row=i+1, col=1)
+            i+=1
+        if i>4:
+            st.error("No more than 3 toggles can be turned on at the same time!")
+        print(count_button)
+            
+                # Update layout
         fig.update_layout(
-            xaxis_title='Time',
-            yaxis_title='Price',
+            title=f'{stock} - Candlestick BB Chart',
+            xaxis_title='Date',
+            yaxis_title="Price",
             hovermode='x',
             yaxis=dict(autorange = True,
                     fixedrange= False),
-            # plot_bgcolor='#f5f5f5',  # Background color
-            # xaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
-            # yaxis_tickcolor='rgba(0,0,0,0.5)',  # Tick color
             font=dict(color='black', size=14),  # Text color
+            width=13 * 100,  # Convert short form width to full width
+            height=12 * 100  # Convert short form height to full height
         )
         fig.update_xaxes(
             rangeslider_visible=True,
@@ -528,12 +704,15 @@ def tech_indicators(data, stock):
                     dict(count=1, label="1y", step="year", stepmode="backward"),
                     dict(step="all")
                 ])
-            )
+            ),
+            row=1, col=1
         )
+        fig.update_layout(xaxis_rangeslider_visible=False)
+        
         df = df.drop(['upper_band', 'lower_band','middle_band'], axis=1)
         st.plotly_chart(fig, use_container_width=True)
     elif option == 'SMA':
-        st.write("Candlestick chart with SMA and SMA")
+        st.write("Candlestick chart with SMA")
         ma_period = st.slider("SMA of how many days?",1,200,value=1,step=1)
 
         # Create the candlestick chart
@@ -577,7 +756,7 @@ def dataframe():
 
 def predict():
     model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'],index=3, horizontal=True)
-    num = st.number_input('How many days forecast?', value=5)
+    num = st.number_input('How many days forecast?', value=5, max_value=10)
     num = int(num)
     
     if "df_w_visualization" not in st.session_state:
@@ -603,10 +782,7 @@ def predict():
                            n_estimators=900,
                            objective='reg:squarederror',
                            learning_rate=0.03)
-        if st.session_state[f"model_{option}_{num}"] is not None:
-            existed_model_engine(st.session_state[f"model_{option}_{num}"], num)
-        else:
-            model_engine(engine, num)
+        model_engine(engine, num)
 
 
 def model_preprocess(df, num):
@@ -731,13 +907,6 @@ def model_engine(model, num):
     # scaling the data
     df_available = df_preprocessed[df_preprocessed['isFuture']==False].copy()
     # if it passed 14h30 then apply close price of today, else not
-    current_hour = datetime.datetime.now().hour
-    current_minute = datetime.datetime.now().minute
-    if (current_hour < 14 and current_minute < 30)  and (current_hour > 9 and current_minute>15):
-        df_available = df_available[:-1]
-        print(df_available.tail())
-        print(current_hour)
-        print(current_minute)
     
     TARGET = 'close'
     X = df_available.drop(columns=[TARGET, 'isFuture']).values
@@ -755,7 +924,7 @@ def model_engine(model, num):
     # training the model
     progress_bar = st.progress(0)
     for perc_completed in range(100):
-        time.sleep(0.000001)
+        time.sleep(0.0000001)
         progress_bar.progress(perc_completed+1)
     model.fit(x_train, y_train)
     preds = model.predict(x_test)

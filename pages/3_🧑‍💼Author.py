@@ -2,8 +2,12 @@ import streamlit as st
 from st_functions import st_button, load_css
 from PIL import Image
 
+# icon = Image.open("favicon.jpg")
 st.set_page_config(page_title="Profile", page_icon="📈")
+
 load_css("style.css")
+
+st.title('Profile')
 
 st.write("[![Star](https://img.shields.io/github/stars/dataprofessor/links.svg?logo=github&style=social)](https://github.com/wangwang2111/)")
 

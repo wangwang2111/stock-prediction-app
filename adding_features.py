@@ -1,8 +1,24 @@
 import pandas as pd
-from datetime import datetime
+import pandas_ta as ta
+import holidays
 
 # Assuming df is your DataFrame with the 'return' column added
 # ...
+def true_range(data):
+    high_low = data['High'] - data['Low']
+    high_close_prev = abs(data['High'] - data['Close'].shift(1))
+    low_close_prev = abs(data['Low'] - data['Close'].shift(1))
+    
+    true_range = pd.DataFrame({'HL': high_low, 'HC': high_close_prev, 'LC': low_close_prev}).max(axis=1)
+
+    return true_range
+
+# Add a custom method for calculating MAD
+def mad_custom(arr):
+    """Calculate Mean Absolute Deviation (MAD)"""
+    return (arr - arr.mean()).abs().mean()
+
+pd.Series.mad_custom = mad_custom  # Adding custom method to pandas Series
 
 # Function to calculate RSI
 class technical_analysis_indicator():
@@ -173,6 +189,220 @@ class technical_analysis_indicator():
 
         return self.data
     
+    def calculate_adx(self, period=14):
+        """
+        Calculates the Average Directional Index (ADX) using the pandas_ta library.
+
+        Parameters:
+            self.data (DataFrame): The DataFrame containing OHLCV data.
+            period (int): The period for ADX calculation.
+
+        Returns:
+            DataFrame: A new DataFrame containing the ADX values.
+        """
+        # Calculate ADX
+        adx_values = ta.adx(self.data['high'], self.data['low'], self.data['close'], length=period)
+        
+        # Assign ADX values to the DataFrame
+        self.data['adx'] = adx_values.iloc[:,0]
+        return self.data
+    
+    
+    def calculate_pdi(self, period=14):
+        """
+        Calculates the Positive Directional Index (PDI) for a given DataFrame of OHLCV data.
+        
+        Args:
+        data (DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
+        period (int): Period for calculating the PDI.
+        
+        Returns:
+        pandas.Series: A series containing the calculated PDI values.
+        """
+        high_diff = self.data['high'] - self.data['high'].shift(1)
+        low_diff = self.data['low'].shift(1) - self.data['low']
+        
+        plus_dm = pd.Series(0, index=self.data.index)
+        plus_dm[(high_diff > 0) & (high_diff > low_diff)] = high_diff
+        
+        tr = true_range(self.data)
+        atr = tr.rolling(window=period).mean()
+        
+        self.data['pdi'] = 100 * (plus_dm.rolling(window=period).sum() / atr)
+
+        return self.data
+
+    
+    def calculate_ndi(self, period=14):
+        """
+        Calculates the Negative Directional Index (NDI) for a given DataFrame of OHLCV data.
+        
+        Args:
+        data (DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
+        period (int): Period for calculating the NDI.
+        
+        Returns:
+        pandas.Series: A series containing the calculated NDI values.
+        """
+        high_diff = self.data['high'] - self.data['high'].shift(1)
+        low_diff = self.data['low'].shift(1) - self.data['low']
+        
+        minus_dm = pd.Series(0, index=self.data.index)
+        minus_dm[(low_diff > 0) & (low_diff > high_diff)] = low_diff
+        
+        tr = true_range(self.data)
+        atr = tr.rolling(window=period).mean()
+        
+        self.data['ndi'] = 100 * (minus_dm.rolling(window=period).sum() / atr)
+        return self.data
+
+
+    def calculate_atr(self, period=14):
+        """
+        Calculates the Average True Range (ATR) for a given DataFrame of OHLCV data.
+        
+        Args:
+        self.data (DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
+        period (int): Period for calculating the ATR.
+        
+        Returns:
+        pandas.Series: A series containing the calculated ATR values.
+        """
+        high_low = self.data['high'] - self.data['low']
+        high_close_prev = abs(self.data['high'] - self.data['close'].shift(1))
+        low_close_prev = abs(self.data['low'] - self.data['close'].shift(1))
+        
+        true_range = pd.DataFrame({'HL': high_low, 'HC': high_close_prev, 'LC': low_close_prev}).max(axis=1)
+        
+        self.data['atr']  = true_range.rolling(window=period).mean()
+        return self.data
+
+
+    def calculate_cci(self, period=20):
+        """
+        Calculates the Commodity Channel Index (CCI) for a given DataFrame of OHLCV data.
+        
+        Args:
+        self.data (DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
+        period (int): Period for calculating the CCI.
+        
+        Returns:
+        pandas.Series: A series containing the calculated CCI values.
+        """
+        typical_price = (self.data['high'] + self.data['low'] + self.data['close']) / 3
+        mean_deviation = typical_price.rolling(window=period).apply(lambda x: pd.Series(x).mad_custom(), raw=True)
+        self.data['cci'] = (typical_price - typical_price.rolling(window=period).mean()) / (0.015 * mean_deviation)
+
+        return self.data
+
+
+    def calculate_chaikin(self, short_period=3, long_period=10):
+        """
+        Calculates the Chaikin Oscillator for a given DataFrame of OHLCV data.
+        
+        Args:
+        self.data (DataFrame): DataFrame containing OHLCV (Open, High, Low, Close, Volume) data.
+        short_period (int): Short period for the exponential moving average.
+        long_period (int): Long period for the exponential moving average.
+        
+        Returns:
+        pandas.Series: A series containing the Chaikin Oscillator values.
+        """
+        adl = (2 * self.data['close'] - self.data['high'] - self.data['low']) / (self.data['high'] - self.data['low']) * self.data['volume']
+        adl_ema_short = adl.ewm(span=short_period, min_periods=short_period).mean()
+        adl_ema_long = adl.ewm(span=long_period, min_periods=long_period).mean()
+        
+        self.data['chaikin'] = adl_ema_short - adl_ema_long
+
+        return self.data
+
+    def calculate_obv(self):
+        """
+        Calculates the On-Balance Volume (OBV).
+
+        Parameters:
+            self.data (DataFrame): The DataFrame containing OHLCV data.
+
+        Returns:
+            DataFrame: A new DataFrame containing the On-Balance Volume values.
+        """
+        # Calculate OBV
+        self.data['obv'] = (self.data['close'] > self.data['close'].shift(1)).astype(int)
+        self.data['obv'] = self.data['obv'].where(self.data['close'] == self.data['close'].shift(1), -self.data['obv'])
+        self.data['obv'] = self.data['obv'] * self.data['volume']
+        self.data['obv'] = self.data['obv'].cumsum()
+
+        return self.data
+
+    def calculate_roc(self, period=14):
+        """
+        Calculates the Rate of Change (ROC).
+
+        Parameters:
+            self.data (DataFrame): The DataFrame containing OHLCV data.
+            period (int): The period for ROC calculation.
+
+        Returns:
+            DataFrame: A new DataFrame containing the ROC values.
+        """
+        # Calculate ROC
+        self.data['roc'] = ((self.data['close'] - self.data['close'].shift(period)) / self.data['close'].shift(period)) * 100
+
+        return self.data
+
+    def calculate_smi(self, period=14, signal_period=3):
+        """
+        Calculates the Stochastic Momentum Indicator (SMI).
+
+        Parameters:
+            self.data (DataFrame): The DataFrame containing OHLCV data.
+            period (int): The period for SMI calculation.
+            signal_period (int): The period for signal line calculation.
+
+        Returns:
+            DataFrame: A new DataFrame containing the SMI and signal line values.
+        """
+        # Calculate the recent high and low
+        self.data['recent_high'] = self.data['high'].rolling(window=period).max()
+        self.data['recent_low'] = self.data['low'].rolling(window=period).min()
+
+        # Calculate the raw SMI
+        self.data['smi_raw'] = ((self.data['close'] - self.data['recent_low']) / (self.data['recent_high'] - self.data['recent_low'])) * 100
+
+        # Calculate the signal line
+        self.data['smi_signal_line'] = self.data['smi_raw'].rolling(window=signal_period).mean()
+        
+        self.data.drop(['recent_high', 'recent_low'], axis=1, inplace=True)
+        return self.data
+
+    def calculate_mfi(self, period=14):
+        """
+        Calculates the Money Flow Index (MFI)
+        Parameters:
+            self.data (DataFrame): The DataFrame containing OHLCV data.
+            period (int): The period for MFI calculation.
+
+        Returns:
+            DataFrame: A new DataFrame containing the MFI values.
+        """
+        typical_price = (self.data['high'] + self.data['low'] + self.data['close']) / 3
+        money_flow = typical_price * self.data['volume']
+        positive_flow = money_flow.mask(typical_price.diff() < 0, 0)
+        negative_flow = money_flow.mask(typical_price.diff() > 0, 0)
+        
+        positive_mf = positive_flow.rolling(window=period).sum()
+        negative_mf = negative_flow.rolling(window=period).sum()
+        
+        money_flow_ratio = positive_mf / negative_mf
+        
+        self.data['money_flow_ratio'] = money_flow_ratio  # Add the money_flow_ratio to the DataFrame
+        
+        # Calculate MFI
+        self.data['mfi'] = 100 - (100 / (1 + self.data['money_flow_ratio'].astype(float)))
+ 
+
+        return self.data
+
     def get_data(self):
         return self.data
         
@@ -216,14 +446,13 @@ def create_seasonality_features(df, time_column='time'):
     df['dayofweek'] = df[time_column].dt.dayofweek
     df['month'] = df[time_column].dt.month
     df['dayofmonth'] = df[time_column].dt.day
-    df['weekofyear'] = df[time_column].dt.isocalendar().week
+    # df['weekofyear'] = df[time_column].dt.isocalendar().week
     # Convert 'weekofyear' to categorical type
-    columns_to_convert = ['weekofyear', 'dayofweek', 'month', 'dayofmonth']
+    columns_to_convert = ['dayofweek', 'month', 'dayofmonth']
     df[columns_to_convert] = df[columns_to_convert].astype('category')
 
     return df
 
-import holidays
 def get_working_days(start_date, end_date, holidays_list):
     all_dates = pd.date_range(start=start_date, end=end_date, freq='B')
     working_days = all_dates[~all_dates.isin(holidays_list) & (all_dates.weekday < 5)]
