@@ -32,10 +32,10 @@ def stock_comparison():
 
     col1, col2 = st.columns([1,1])
 
-    st.markdown("<h3 style='color: #FF5733;'>Technical Indicators Comparison</h3>", unsafe_allow_html=True)
+    col1.markdown("<h3 style='color: #FF5733;'>Technical Indicators Comparison</h3>", unsafe_allow_html=True)
     col1.dataframe(stocks_sel, use_container_width=True,height=700)
 
-    st.markdown("<h3 style='color: #FF5733;'>Fundamental Indicators Comparison</h3>", unsafe_allow_html=True)
+    col2.markdown("<h3 style='color: #FF5733;'>Fundamental Indicators Comparison</h3>", unsafe_allow_html=True)
     col2.dataframe(stock_ls_analysis(stocks, lang='vi'), use_container_width=True,height=700)
 
     st.header("Same Industry Comparison")
