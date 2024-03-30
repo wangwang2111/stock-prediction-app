@@ -32,9 +32,13 @@ def stock_comparison():
 
     col1, col2 = st.columns([1,1])
 
+    col1.header("Technical Indicators Comparison")
     col1.dataframe(stocks_sel, use_container_width=True,height=700)
+    
+    col2.header("Fundamental Indicators Comparison")
     col2.dataframe(stock_ls_analysis(stocks, lang='vi'), use_container_width=True,height=700)
 
+    st.header("Same Industry Comparison")
     default_ix = listing_stocks.index("VHM")
     option = st.selectbox("Select stock to compare in the same industry:", listing_stocks, default_ix)
     st.dataframe(industry_analysis(option, lang='vi'))
