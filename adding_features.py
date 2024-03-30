@@ -1,5 +1,5 @@
 import pandas as pd
-import pandas_ta as ta
+# import pandas_ta as ta
 import holidays
 
 # Assuming df is your DataFrame with the 'return' column added
@@ -189,24 +189,23 @@ class technical_analysis_indicator():
 
         return self.data
     
-    def calculate_adx(self, period=14):
-        """
-        Calculates the Average Directional Index (ADX) using the pandas_ta library.
+    # def calculate_adx(self, period=14):
+    #     """
+    #     Calculates the Average Directional Index (ADX) using the pandas_ta library.
 
-        Parameters:
-            self.data (DataFrame): The DataFrame containing OHLCV data.
-            period (int): The period for ADX calculation.
+    #     Parameters:
+    #         self.data (DataFrame): The DataFrame containing OHLCV data.
+    #         period (int): The period for ADX calculation.
 
-        Returns:
-            DataFrame: A new DataFrame containing the ADX values.
-        """
-        # Calculate ADX
-        adx_values = ta.adx(self.data['high'], self.data['low'], self.data['close'], length=period)
+    #     Returns:
+    #         DataFrame: A new DataFrame containing the ADX values.
+    #     """
+    #     # Calculate ADX
+    #     adx_values = ta.adx(self.data['high'], self.data['low'], self.data['close'], length=period)
         
-        # Assign ADX values to the DataFrame
-        self.data['adx'] = adx_values.iloc[:,0]
-        return self.data
-    
+    #     # Assign ADX values to the DataFrame
+    #     self.data['adx'] = adx_values.iloc[:,0]
+    #     return self.data
     
     def calculate_pdi(self, period=14):
         """
