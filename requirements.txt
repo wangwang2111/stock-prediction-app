@@ -9,3 +9,5 @@ catboost==1.2.2
 plotly==5.18.0
 holidays==0.43
 openpyxl==3.1.2
+graphviz==0.20.1
+streamlit-timeline==0.0.2
