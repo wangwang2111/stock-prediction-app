@@ -74,44 +74,44 @@ st.dataframe(info['edu'].set_index(info['edu'].columns[2]), use_container_width=
 st.subheader('Projects 📚', divider='violet')
 st.subheader('Research Papers 📝', divider='violet')
 
-def plot_bar():
-    st.info('Comparing Brute Force approach with the algorithms')
-    temp1 = rapid_metrics.loc[['Brute-Force_Printed','printed'],:].reset_index().melt(id_vars=['category'],value_vars=['precision','recall','f1_score'],var_name='metrics',value_name='%').reset_index()
+# def plot_bar():
+#     st.info('Comparing Brute Force approach with the algorithms')
+#     temp1 = rapid_metrics.loc[['Brute-Force_Printed','printed'],:].reset_index().melt(id_vars=['category'],value_vars=['precision','recall','f1_score'],var_name='metrics',value_name='%').reset_index()
     
-    temp2 = rapid_metrics.loc[['Brute-Force_Handwritten','handwritten'],:].reset_index().melt(id_vars=['category'],value_vars=['precision','recall','f1_score'],var_name='metrics',value_name='%').reset_index()
+#     temp2 = rapid_metrics.loc[['Brute-Force_Handwritten','handwritten'],:].reset_index().melt(id_vars=['category'],value_vars=['precision','recall','f1_score'],var_name='metrics',value_name='%').reset_index()
     
-    cols = st.columns(2)
+#     cols = st.columns(2)
     
-    fig = px.bar(temp1, x="metrics", y="%", 
-             color="category", barmode = 'group')
+#     fig = px.bar(temp1, x="metrics", y="%", 
+#              color="category", barmode = 'group')
      
-    cols[0].plotly_chart(fig,use_container_width=True)
+#     cols[0].plotly_chart(fig,use_container_width=True)
     
-    fig = px.bar(temp2, x="metrics", y="%", 
-             color="category", barmode = 'group')
-    cols[1].plotly_chart(fig,use_container_width=True)
+#     fig = px.bar(temp2, x="metrics", y="%", 
+#              color="category", barmode = 'group')
+#     cols[1].plotly_chart(fig,use_container_width=True)
     
     
 
-def image_and_status_loader(image_list,index=0):
-    if index==0:
-        img = Image.open(image_list[0]['path'])
-        st.image(img,caption=image_list[0]['caption'],width=image_list[0]['width'])
+# def image_and_status_loader(image_list,index=0):
+#     if index==0:
+#         img = Image.open(image_list[0]['path'])
+#         st.image(img,caption=image_list[0]['caption'],width=image_list[0]['width'])
        
-    else:
-        st.success('C-Cube algorithm for printed prescriptions')
-        rapid_metrics.loc[['Brute-Force_Printed','printed'],:].plot(kind='bar')
-        cols = st.columns(3)
-        for index_,items in enumerate(image_list[0]):
-            cols[index_].image(items['path'],caption=items['caption'],use_column_width=True)
+#     else:
+#         st.success('C-Cube algorithm for printed prescriptions')
+#         rapid_metrics.loc[['Brute-Force_Printed','printed'],:].plot(kind='bar')
+#         cols = st.columns(3)
+#         for index_,items in enumerate(image_list[0]):
+#             cols[index_].image(items['path'],caption=items['caption'],use_column_width=True)
      
         
-        st.success('3 step filtering algorithm for handwritten algorithms')
-        cols = st.columns(3)
-        for index_,items in enumerate(image_list[1]):
-            cols[index_].image(items['path'],caption=items['caption'],use_column_width=True)
+#         st.success('3 step filtering algorithm for handwritten algorithms')
+#         cols = st.columns(3)
+#         for index_,items in enumerate(image_list[1]):
+#             cols[index_].image(items['path'],caption=items['caption'],use_column_width=True)
         
-        plot_bar()
+#         plot_bar()
         
         
 
