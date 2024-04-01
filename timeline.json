@@ -1,0 +1,94 @@
+{
+  "events": [
+    {
+      "start_date": { "year": "2023", "month": "12" },
+      "media": {
+        "url": "https://bfchem.vn/wp-content/uploads/2021/10/logo_1603427551.png",
+        "credit": "BFChem img"
+      },
+      "text": {
+        "headline": "Data Analyst/Data Scientist",
+        "text": "Applying my analytical skills and knowledge to various projects and work experiences, such as creating dashboards and reports on Sales, HRM, Inventory, and IT. Furthermore, I also applied machine learning (ANN, NLP, ...) into my workflow of cleaning and analyzing competitors, and import cost optimization in BA DINH FOODSTUFF."
+      }
+    },
+    {
+      "start_date": { "year": "2021", "month": "7" },
+      "media": {
+        "url": "https://tamchitai.edu.vn/images/logo4-removebg.png",
+        "credit": "TCT img"
+      },
+      "text": {
+        "headline": "Teaching Assistant Tam Chi Tai Centre, Ha Noi, Hai Ba Trung",
+        "text": "<p>Assisted teachers in teaching, managed students, advised parents and students (in English, Mathematics, and Physics). Helped students master learning concepts through one-on-one and group tutoring.<p>"
+      }
+    },
+    {
+      "start_date": { "year": "2022", "month": "2"},
+      "media": {
+        "url": "https://coin98.net/assets/logo/coin98-insight.svg",
+        "credit": "coin98vn 1mg"
+      },
+      "text": {
+        "headline": "Web Developer Coin98vn",
+        "text": "Developed a website both frontend and backend. Frontend using HTML, CSS, and JavaScript. Backend using Django."
+      }
+    },
+    {
+      "start_date": { "year": "2022", "month": "7"},
+      "media": {
+        "url": "https://tringhiatech.vn/public/frontend/img/2-1.png",
+        "caption": "sample prescriptions/rx",
+        "credit": "Tringhiatech img"
+      },
+      "text": {
+        "headline": "Web Developer",
+        "text": "Frontend developer position using Angular."
+      }
+    },
+    {
+      "start_date": { "year": "2023", "month": "6" },
+      "media": {
+        "url": "https://vinatex.com.vn/wp-content/uploads/2017/09/logo.png",
+        "credit": "Vinatex img"
+      },
+      "text": {
+        "headline": "Data Analyst",
+        "text": "Utilized SQL to retrieve data from the data warehouse and employed Power BI to generate visual representations, including control charts and trend graphs, for sales and cost structure reports on a monthly and quarterly basis. • Created reports on product defects, and collaborated with quality control teams and production managers to optimize cost structures, contributing to enhanced product quality and increased company profits"
+      }
+    },
+
+    {
+      "start_date": { "year": "2024", "month": "1" },
+      "media": {
+        "url": "https://udemy-certificate.s3.amazonaws.com/image/UC-fbfff5bc-ab2e-4167-bb7f-a1e232274a41.jpg",
+        "credit": "https://udemy-certificate.s3.amazonaws.com/image/UC-fbfff5bc-ab2e-4167-bb7f-a1e232274a41.jpg"
+      },
+      "text": {
+        "headline": "Data Science Course: The complete bootcamp 2024",
+        "text": ""
+      }
+    },
+    {
+      "start_date": { "year": "2023", "month": "9", "day": "6" },
+      "media": {
+        "url": "https://www.vcbf.com/themes/vip/assets/images/logo_vn.png",
+        "credit": "https://github.com/wangwang2111/Portfolio-management-VCBF-BCF"
+      },
+      "text": {
+        "headline": "Portfolio Optimization and Management",
+        "text": "Overview and evaluation of the investment performance of the VCBF-BCF stock fund, comparing the fund's investment performance with the VN100 index and with the group's optimized investment portfolio."
+      }
+    },
+    {
+      "start_date": { "year": "2023", "month": "3" },
+      "media": {
+        "url": "https://youth.uel.edu.vn/Resources/Images/SubDomain/youth/2022/071.%20Chung%20k%E1%BA%BFt%20ATTACKER/52.png",
+        "credit": "https://github.com/wangwang2111/fraud-detection"
+      },
+      "text": {
+        "headline": "Fintech ATTACKER 2024",
+        "text": "A project using some machine learning tools for fraud detection in banking credit transactions. Our team and me ended as the first runner up in this competition."
+      }
+    }
+  ]
+}
