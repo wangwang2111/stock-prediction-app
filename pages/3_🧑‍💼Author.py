@@ -156,7 +156,7 @@ graph.edge('work on manager\'s assigned','Around 4PM')
 graph.edge('Around 4PM','end')
 graph.edge('Some meeting','end',label='If too long')
 graph.edge('Some meeting','work on manager\'s assigned')
-st.graphviz_chart(graph)
+st.graphviz_chart(graph, use_container_width=True)
 
 pdfFileObj = open('pdfs/CV_NguyenDangQuang.pdf', 'rb')
 st.sidebar.download_button('download resume',pdfFileObj,file_name='',mime='pdf')
