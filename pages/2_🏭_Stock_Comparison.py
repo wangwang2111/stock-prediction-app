@@ -9,7 +9,7 @@ load_css("main.css")
 
 st.title('Stocks Comparison')
 st.sidebar.info('Welcome to the Stock Price Prediction App. Choose your options below')
-st.sidebar.info("Created and designed by [Dylan Nguyen](https://www.linkedin.com/in/quang-nguyen-4b6a52287/)")
+st.sidebar.markdown("Created and designed by: <a style='color: #f7731;' href='https://www.linkedin.com/in/quang-nguyen-4b6a52287/'>Dylan Nguyen</a>", unsafe_allow_html=True)
 
 def main():
     sidebar_option = st.sidebar.selectbox('Make a choice', ['Stock Comparison', 'Stock Same Industry Comparison'])
