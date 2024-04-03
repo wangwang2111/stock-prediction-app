@@ -29,19 +29,21 @@ def stock_comparison():
     # Set index to the first column and drop the original index
     stocks_sel.set_index(stocks_sel.columns[0], inplace=True, drop=True)
     stocks_sel = stocks_sel.T
+    if options:
+        col1, col2 = st.columns([1,1])
 
-    col1, col2 = st.columns([1,1])
+        col1.markdown("<h3 style='color: #FF5733;'>Technical Indicators Comparison</h3>", unsafe_allow_html=True)
+        col1.dataframe(stocks_sel, use_container_width=True,height=700)
 
-    col1.markdown("<h3 style='color: #FF5733;'>Technical Indicators Comparison</h3>", unsafe_allow_html=True)
-    col1.dataframe(stocks_sel, use_container_width=True,height=700)
+        col2.markdown("<h3 style='color: #C70039;'>Fundamental Indicators Comparison</h3>", unsafe_allow_html=True)
+        col2.dataframe(stock_ls_analysis(stocks, lang='vi'), use_container_width=True,height=700)
 
-    col2.markdown("<h3 style='color: #C70039;'>Fundamental Indicators Comparison</h3>", unsafe_allow_html=True)
-    col2.dataframe(stock_ls_analysis(stocks, lang='vi'), use_container_width=True,height=700)
-
-    st.header("Same Industry Comparison")
-    default_ix = listing_stocks.index("VHM")
+        st.header("Same Industry Comparison")
+        default_ix = listing_stocks.index("VHM")
+        
     option = st.selectbox("Select stock to compare in the same industry:", listing_stocks, default_ix)
-    st.dataframe(industry_analysis(option, lang='vi'))
+    if option:
+        st.dataframe(industry_analysis(option, lang='vi'))
 
 
 def stock_same_ind_comparison():
