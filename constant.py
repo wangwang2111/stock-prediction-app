@@ -14,7 +14,7 @@ info = {'name': 'Dylan Nguyen',
         'Medium': 'https://medium.com/@mehulgupta_7991/about',
         'City': 'Hanoi, Vietnam',
         'edu': pd.DataFrame(edu, columns=['Qualification', 'Stream', 'Year', 'Institute', 'Completion']),
-        'skills': ['Data Science', 'Python', 'JavaScript', 'C++', 'R', 'SQL', 'M Query', 'DAX', 'PowerBI', 'Tableau', 'Streamlit', 'Tensorflow', 'pandas', 'matplotlib',
+        'skills': ['Data Science', 'Python', 'JavaScript', 'C++', 'R', 'SQL', 'M Query', 'DAX', 'PowerBI', 'Tableau', 'Selenium', 'Beautiful Soup', 'Streamlit', 'Tensorflow', 'pandas', 'matplotlib',
                    'seaborn', 'statsmodels', 'scikit learn', 'tensorflow', 'dplyr', 'ggplot2', 'tidymodels', 'fportfolio', 'HTML', 'CSS', 'Django', 'Flask'],
         'achievements': ['Academic Scholarship from National Economics University (2022)', 'Certificate of Silver Level in WorldQuant Brain Challenge (2023)', 'IELTS 7.5 (22/07/2023)', 'First runner-up Fintech Application in Banking Sector Competition -Attacker 2022 in Vietnam (12/02/2023)', 'Microsoft Office Specialist (MOS) 1976 pts (11/08/2023)'],
         'publication_url': 'https://icpt.hust.edu.vn/en/proceedings/icpt-hust-2023/proceedings-of-icpt-hust-2023-12.html'}
