@@ -1,5 +1,5 @@
 div[data-baseweb="notification"] {
-    background-color: #3498db; /* Change this color to your desired color */
+    background-color: #4C48B2; /* Change this color to your desired color */
     color: #ffffff !important; 
     /* Change this color to your desired text color  */
 }
@@ -8,12 +8,13 @@ div[class="st-emotion-cache-y57ikh e1nzilvr5"] {
     color: #ffffff !important; /* Change this color to your desired text color */
 }
 
-.eczjsme3 div[data-baseweb="select"] {
-    color: #ffffff !important; /* Change this color to your desired text color */
-}
+/* .eczjsme3 div[data-baseweb="select"] {
+    color: #4C48B2 !important; /* Change this color to your desired text color */
+/*}*/ 
+
 
 h1 {
-    color: #1f77b4 !important;
+    color: #4C48B2 !important;
 }
 /* h2 {
     color: #1f77b4 !important;

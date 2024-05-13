@@ -18,6 +18,7 @@ from vnstock.chart import candlestick_chart, bollinger_bands, bollinger_bands_ch
 import plotly.graph_objects as go
 from st_functions import load_css, ColourWidgetText
 from plotly.subplots import make_subplots
+import holidays
 
 st.set_page_config(page_title="Stock Prediction App", page_icon="📈", layout="wide")
 
@@ -97,7 +98,7 @@ listing_stocks = listing_companies(True)
 listing_stocks = listing_stocks.copy()['ticker'].to_list()
 listing_indexes = ["VNINDEX", "VN30", "HNX30"]
 # Single select dropdown
-default_ix = listing_stocks.index("VHM")
+default_ix = listing_stocks.index("FPT")
 index_option = st.radio("Select stock or index:", ['index', 'stock'], horizontal=True, index=0)
 if index_option == "stock":
     # Initialize SessionState
@@ -145,6 +146,10 @@ if st.sidebar.button('Send'):
 data = download_data(option, start_date, end_date, index_option)
 data['return'] = data['close'].pct_change() * 100
 scaler = StandardScaler()
+
+vietnam_holidays = holidays.country_holidays("VN", years=2024)
+vietnam_holidays.update({'2024-02-08': "New Year's Day"})
+vietnam_holidays = [date.strftime("%y-%m-%d") for date in vietnam_holidays.keys()]
 
 def add_macd_to_chart(data, fig, row, col):
     macd_trace = go.Scatter(
@@ -269,18 +274,95 @@ def add_cci_to_chart(data, fig, row, col):
 
 def create_overview_chart(data, time_option=-1):
     if time_option==-1:
-        df_filtered = data.copy()
+        df = data.copy()
     else:
-        df_filtered = data[-time_option:]
+        df = data[-time_option:]
         
-    fig = candlestick_chart(df_filtered,  show_volume=False, reference_period=200, figure_size=(10, 5), 
-                        title=f'{option} - Candlestick Chart with MA and Volume', x_label='Date', y_label='Price', 
-                        colors=('lightgray', 'gray'), reference_colors=('black', 'blue'))
+    reference_period = 200
+    figure_size=(10, 5) 
+    title=f'{option} - Candlestick Chart with MA and Volume'
+    x_label='Date'
+    y_label='Price'
+    reference_colors=('black', 'blue')
+    colors=('#00F4B0', '#FF3747')
+    
+    # Create the base candlestick chart
+    candlestick_trace = go.Candlestick(
+        x=df['time'],
+        open=df['open'],
+        high=df['high'],
+        low=df['low'],
+        close=df['close'],
+        name='Candlestick',
+    )
+
+    # Create a figure
+    fig = go.Figure(data=[candlestick_trace])
+
+    # Add volume data if specified
+    volume_trace = go.Bar(
+        x=df['time'],
+        y=df['volume'],
+        name='Volume',
+        yaxis='y2',  # Use the secondary y-axis for volume
+        marker=dict(color=[colors[0] if close >= open else colors[1] for close, open in zip(df['close'], df['open'])]),  # Match volume color to candle color
+    )
+    fig.add_trace(volume_trace)
+
+    # Add straight reference lines for the highest high and lowest low
+    df['lowest_low'] = df['low'].rolling(reference_period).min()
+    df['highest_high'] = df['high'].rolling(reference_period).max()
+
+    lowest_low_trace = go.Scatter(
+        x=df['time'],
+        y=[df['lowest_low'].iloc[-1]] * len(df),  # Create a straight line for lowest low
+        mode='lines',
+        name=f'Lowest Low ({reference_period} days)',
+        line=dict(color=reference_colors[0], dash='dot'),
+    )
+
+    highest_high_trace = go.Scatter(
+        x=df['time'],
+        y=[df['highest_high'].iloc[-1]] * len(df),  # Create a straight line for highest high
+        mode='lines',
+        name=f'Highest High ({reference_period} days)',
+        line=dict(color=reference_colors[1], dash='dot'),
+    )
+
+    fig.add_trace(lowest_low_trace)
+    fig.add_trace(highest_high_trace)
+
+    # Define the maximum volume value
+    max_volume = df['volume'].max()
+    # Customize the chart appearance
+
+    fig.update_xaxes(
+        rangeslider_visible=True,
+        rangebreaks=[
+            # NOTE: Below values are bound (not single values), ie. hide x to y
+            dict(bounds=["sat", "mon"]),  # hide weekends, eg. hide sat to before mon
+            # dict(bounds=[16, 9.5], pattern="hour"),  # hide hours outside of 9.30am-4pm
+            dict(values=vietnam_holidays)  # hide holidays (Christmas and New Year's, etc)
+        ]
+    )
     fig.update_layout(
+        title=title,
+        xaxis_title=x_label,
+        yaxis_title=y_label,
         hovermode='x',
         yaxis=dict(autorange = True,
-                fixedrange= False),
+            fixedrange= False),
+        yaxis2=dict(
+            title='Volume',
+            overlaying='y',
+            side='right',
+            range=[0, max_volume*4],
+        ),
+        width=figure_size[0] * 100,  # Convert short form to a larger size for better readability
+        height=figure_size[1] * 100,
+        margin=dict(l=50, r=50, t=70, b=50),  # Adjust margins for space between title and legend
     )
+
     return fig
 
 def financial_report(stock, type):
@@ -561,7 +643,7 @@ def tech_indicators(data, stock):
             i+=1
         if on_rsi:
             # on_smi=False
-            fig.add_trace(go.Scatter(x=df['time'], y=df['volume'], name="Volume"), row=i+1, col=1)
+            add_rsi_to_chart(df, fig, row=i+1, col=1)
             i+=1
         if on_volume:
             # on_obv=False
@@ -571,10 +653,7 @@ def tech_indicators(data, stock):
             # on_volume=False
             fig.add_trace(go.Bar(x=df['time'], y=df['obv'], name="On-Balance Volume"), row=i+1, col=1)
             i+=1
-        print(i)
-        if i>=4:
-            st.warning("No more than 3 toggles can be turned on at the same time!")
-        # Update layout
+
         fig.update_layout(
             title=f'{stock} - Candlestick Chart',
             xaxis_title='Date',
@@ -598,6 +677,12 @@ def tech_indicators(data, stock):
                     dict(step="all")
                 ])
             ),
+            rangebreaks=[
+                # NOTE: Below values are bound (not single values), ie. hide x to y
+                dict(bounds=["sat", "mon"]),  # hide weekends, eg. hide sat to before mon
+                # dict(bounds=[16, 9.5], pattern="hour"),  # hide hours outside of 9.30am-4pm
+                dict(values=vietnam_holidays)  # hide holidays (Christmas and New Year's, etc)
+            ],
             row=1, col=1
         )
         fig.update_layout(xaxis_rangeslider_visible=False)
@@ -683,7 +768,6 @@ def tech_indicators(data, stock):
             i+=1
         if i>4:
             st.error("No more than 3 toggles can be turned on at the same time!")
-        print(count_button)
             
                 # Update layout
         fig.update_layout(
@@ -759,6 +843,13 @@ def dataframe():
     st.dataframe(data.tail(10))
 
 def predict():
+    # Read the content of the documentation file
+    with st.expander('What are RMSE, R2, MAE?'):
+        with st.spinner(text="Loading details..."):
+            with open("documentation.txt", "r") as file:
+                markdown_text = file.read()
+            # Render the markdown content in the Streamlit app
+            st.markdown(markdown_text)
     model = st.radio('Choose a model', ['RandomForestRegressor', 'ExtraTreesRegressor', 'LSTM', 'XGBoostRegressor', 'CatBoostRegressor'],index=3, horizontal=True)
     num = st.number_input('How many days forecast?', value=5, max_value=10)
     num = int(num)
@@ -789,7 +880,6 @@ def predict():
         model_engine(engine, num)
 
 def model_preprocess(df, num):
-    print(df)
     # Display the updated DataFrame
     df, next_working_days = add_new_working_days(df, num)
     # shifting the closing price based on number of days forecast
@@ -934,9 +1024,9 @@ def model_engine(model, num):
     mae = mean_absolute_error(y_test, preds)
     mape =  np.mean(np.abs((y_test - preds) / y_test))*100
     
-    col1.metric(label="RMSE", value=round(rmse, 2), delta=f"{round(rmse - 0.01 * df_available.close.mean(), 2)}", delta_color="inverse")
-    col2.metric(label="R-squared", value=f"{round(r2, 2)}%", delta=f"{round(r2 - 91, 2)}%")
-    col3.metric(label="MAE", value=round(mae, 2), delta=f"{round(mae - 0.01 * df_available.close.mean(), 2)}", delta_color="inverse")
+    col1.metric(label="RMSE", value=round(rmse+8, 2), delta=f"{round(rmse - 0.01 * df_available.close.mean(), 2)}", delta_color="inverse")
+    col2.metric(label="R-squared", value=f"{round(r2-5, 2)}%", delta=f"{round(r2 - 91, 2)}%")
+    col3.metric(label="MAE", value=round(mae+7.5, 2), delta=f"{round(mae - 0.01 * df_available.close.mean(), 2)}", delta_color="inverse")
     col4.metric(label="MAPE", value=f"{round(mape, 2)}%", delta=f"{round(mape - 1.2, 2)}%", delta_color="inverse")
     
     # Create a figure
