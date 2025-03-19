@@ -1,0 +1,12 @@
+# Folders to exclude
+catboost_info/
+images/
+
+# Model training artifacts (optional)
+*.csv
+*.ipynb
+train_catboost.py
+
+# Cache or temp files
+__pycache__/
+*.pyc
