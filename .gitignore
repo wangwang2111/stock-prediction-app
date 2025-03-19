@@ -1,6 +1,7 @@
 # Folders to exclude
 catboost_info/
 images/
+.streamlit/
 
 # Model training artifacts (optional)
 *.csv
