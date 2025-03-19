@@ -14,7 +14,11 @@
     {
       "start_date": { "year": "2021", "month": "7" },
       "media": {
+<<<<<<< HEAD
         "url": "https://cdn-new.topcv.vn/unsafe/https://static.topcv.vn/company_logos/pjMgj8Ct6F1z6ODKbrt5qAYBAqHZLyrz_1711421177____007dbe5fcd126462d5a88f966c153719.jpg",
+=======
+        "url": "https://tamchitai.edu.vn/images/logo4-removebg.png",
+>>>>>>> acc0435072ee5b679861765d3cc733385ed4ff5b
         "credit": "TCT img"
       },
       "text": {
