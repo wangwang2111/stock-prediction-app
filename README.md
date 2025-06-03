@@ -1,6 +1,6 @@
 # 📈 Vietnam Stock Prediction App 
 
-A web-based application for interactive stock price prediction using machine learning. Built with Streamlit, the app allows users to input a stock ticker symbol and visualize both historical data and predicted future trends.
+A web-based application for interactive stock price prediction using machine learning with web scraping, NLP for sentiment analysis. Built with Streamlit, the app allows users to input a stock ticker symbol and visualize both historical data and predicted future trends.
 
 🔗 **Live Demo**: [https://stock-prediction-app-dylan.streamlit.app/](https://stock-prediction-app-dylan.streamlit.app/)
 
